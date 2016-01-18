@@ -1,0 +1,460 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=ISO-8859-1"
+      http-equiv="Content-Type">
+    <title>ProdBase - Storage and Transmission of Extracts</title>
+    <meta content="Leo Heska" name="author">
+  </head>
+  <body>
+    <h2 align="center">Possible data storage and transmission formats <br>
+    </h2>
+    <h2 align="center">(anonymized ProdBase extracts)<br>
+    </h2>
+    <p align="center">Leo Heska<br>
+      July, 2012<br>
+      - - draft - -<br>
+    </p>
+    <div align="left">There are a lot of ways we may store and transmit
+      anonymized ProdBase extracts. Some require only brief mention:<br>
+      <ul>
+        <li>XML. Very readable but kind of passe, and bloated. The bang
+          for us is small and the buck (processing overhead, bloat) too
+          high.</li>
+        <li>JSON. Favored nowadays; created as a way to reduce XML's
+          bloat. It does, but only by about 50%. Still too bloated for
+          our use.<br>
+        </li>
+        <li>EDI and other proprietary, obscure, and or "technical"
+          formats. Too much work and complexity; too-low bang for
+          too-high buck.<br>
+        </li>
+      </ul>
+      <p>Possible/candidate storage and transmission format we may use
+        for anonymized ProdBase extracts:<br>
+      </p>
+      <ul>
+        <li>Key-value pairs</li>
+        <li>Delimited flat files without header records</li>
+        <li>Delimited flat files with header records</li>
+        <li>Positionally formatted flat files, no header records</li>
+        <li>Hybrid; positionally formatted followed by key-value</li>
+        <li>Encoded single values</li>
+      </ul>
+      Advantages, disadvantages, and storage considerations of each of
+      these, I present below for discussion and consideration.<br>
+      <h3>Key-value pairs<br>
+      </h3>
+      <p>Currently one of the (leading) options for formatting an
+        anonymized ProdBase extract looks like this (lines truncated
+        here for display):<br>
+      </p>
+      <blockquote>
+        <p><tt>0000008F91D0401CAF5BC063F29310C02E40D89F|1270-11|1271-08X|1274-08O|1275-03O|1280-10|1281-02H|4151-44|4152-2<br>
+000002A365739E99657CD84AB646637A9E5B66C9|1270-36|1271-20S|1274-07C|1275-04C|1280-45|1281-10L|4151-70|4152-1<br>
+000002F7994DF919B73F4ACFB0AF659CD5C0A3E7|1270-20|1271-07X|1275-03O|1280-26|1281-06M|2507-00|2531-00<br>
+          </tt></p>
+      </blockquote>
+      Advantages:<br>
+      <ul>
+        <li>No header record needed as long as all parties recognize
+          that the left column is an AshID. For humans that's easy - the
+          AshID is the left column, it looks different fromn all the
+          rest, it's the only column that doesn't contain a dash. These
+          are probably distinction enough to "set it off" - humans can
+          read this.<br>
+        </li>
+        <li>Key-value pairs make the format self-documenting.</li>
+        <li>Key-value pairs mean that new keys may be added at any time</li>
+        <ul>
+          <li>No recoding of export or import processes needed</li>
+          <li>Downstream processes, though, may need recoding and/or
+            reconfiguration, to make use of the new data.<br>
+          </li>
+        </ul>
+      </ul>
+      <p>Disadvantages:<br>
+      </p>
+      <ul>
+        <li>This hybrid format will never be maximally nice to ingest
+          with automated tools. It's almost key-value pairs throughout,
+          but not quite; the first field has no key. Therefore a
+          "programming trick" will be needed prior to ingestion, if
+          automated parsing tools that expect key-value pairs are to be
+          used. Such "tricks" may or may not be available in all input
+          processing routines, packages, and/or languages. This extra
+          complexity can cause extra development effort, require more
+          moving parts, and/or slow processing in production.<br>
+        </li>
+        <li>Possibility of duplication</li>
+        <ul>
+          <li>There is nothing within the file structure itself that
+            prevents something like this:</li>
+        </ul>
+      </ul>
+      <blockquote>
+        <blockquote><tt>000002F7994DF919B73F4ACFB0AF659CD5C0A3E7|1270-20|1271-07X|1270-3O<br>
+          </tt></blockquote>
+      </blockquote>
+      Bloat:<br>
+      <ul>
+        <li>At a glance at sample data, about 65% bloat:<br>
+        </li>
+        <ul>
+          <li>Other than the AshID, every field consists of 1 to 3
+            characters of information, but 6 additional characters are
+            required for the encoding. Like so:</li>
+          <ul>
+            <li>Field: <tt>|1270-11</tt></li>
+            <li>Information content: <tt>11</tt></li>
+            <li>Formatting and metadata: <tt>|1270-</tt></li>
+            <li>Average content, 2 characters. Average formatting and
+              metadata, 6 characters. This yields the 300% bloat.</li>
+          </ul>
+        </ul>
+        <li>Upon analysis of sample data, 81% bloat:</li>
+        <ul>
+          <ul>
+            <li>72,651 bytes of values (50,760 total values)<br>
+            </li>
+            <li>381,091 bytes total of all value strings</li>
+            <li>This yields the 81% bloat<br>
+            </li>
+          </ul>
+        </ul>
+      </ul>
+      <h3>Delimited flat-file records without headers<br>
+      </h3>
+      <p>Another option, apparently currently possible/available (the
+        data feed already exists), looks like this (lines truncated here
+        for display):<br>
+      </p>
+      <blockquote>
+        <p><tt>0000008F91D0401CAF5BC063F29310C02E40D89F|113|08X3|08O3|03O3|101|02H1|44|2|Y|000000001001000|M|O|01|S||||||||1||||||<br>
+000002A365739E99657CD84AB646637A9E5B66C9|363|20S3|07C3|04C3|451|10L1|70|1|Y|001000000000000|M|R|03|M|1|1||||||1||||<br>
+000002F7994DF919B73F4ACFB0AF659CD5C0A3E7|20G|07XG||03OG|26G|06MG||||000000000000000||||||||||||||||||||||||||||||||<br>
+          </tt></p>
+      </blockquote>
+      Advantages:<br>
+      <ul>
+        <li>No "programming trick" needed to ingest. All fields are just
+          fields. Very many input routines, tools, and packages can
+          handle this format as is.</li>
+        <li>If the ingestor is configurable:</li>
+        <ul>
+          <li>No recoding of export or import processes needed</li>
+          <li>Downstream processes, though, may need recoding and/or
+            reconfiguration, to make use of the new data.</li>
+        </ul>
+        <li>No possibility of duplication as is possible with key/value
+          pairs; this format does not permit transmitting values that
+          conflict.<br>
+        </li>
+      </ul>
+      <p>Disadvantages:<br>
+      </p>
+      <ul>
+        <li>This format is not self-documenting. To ingest the data, a
+          separate metadata store must be communicated to the ingesting
+          program, either at design/coding or configuration time. The
+          possibility does exist that the data layout may change, but
+          the metadata will not, creating an out-of-synchronization
+          condition. <br>
+        </li>
+      </ul>
+      Bloat:<br>
+      <ul>
+        <li>5% improvement over key/value pairs.</li>
+        <li>Sample data show that average line length of records stored
+          in this format is 404 characters, versus 421 characters
+          formatted as key/value pairs.</li>
+        <li>The 210 delimiters per line are "waste" from an information
+          content point of view. However, this is more than offset by
+          eliminating the verbose keys.</li>
+        <li>Internal bloat shows 48% data, 52% delimiters.<br>
+        </li>
+      </ul>
+      <h3>Delimited flat-file records with headers<br>
+      </h3>
+      <p>Another option would look like this (lines truncated here for
+        display):<br>
+      </p>
+      <blockquote>
+        <p><tt>AshID|FieldName1|FieldName2|</tt><tt>FieldName</tt><tt>3|</tt><tt>FieldName4</tt><tt>|</tt><tt>FieldName5</tt><tt>|</tt><tt>FieldName6</tt><tt>|</tt><tt>FieldName7</tt><tt>|</tt><tt>FieldName8</tt><tt>|</tt><tt>FieldName9</tt><tt>|</tt><tt>FieldName10</tt><tt>|</tt><br>
+          <tt>0000008F91D0401CAF5BC063F29310C02E40D89F|113|08X3|08O3|03O3|101|02H1|44|2|Y|000000001001000|M|O|01|S||||||||1||||||<br>
+000002A365739E99657CD84AB646637A9E5B66C9|363|20S3|07C3|04C3|451|10L1|70|1|Y|001000000000000|M|R|03|M|1|1||||||1||||<br>
+000002F7994DF919B73F4ACFB0AF659CD5C0A3E7|20G|07XG||03OG|26G|06MG||||000000000000000||||||||||||||||||||||||||||||||<br>
+          </tt></p>
+      </blockquote>
+      Advantages:<br>
+      <ul>
+        <li>Some input routines, tools, and packages can handle this
+          format as is (but see related disadvantage below).<br>
+        </li>
+        <li>If the ingestor is configurable:</li>
+        <ul>
+          <li>No recoding of export or import processes needed</li>
+          <li>Downstream processes, though, may need recoding and/or
+            reconfiguration, to make use of the new data.</li>
+        </ul>
+        <li>No possibility of duplication as above; this format does not
+          permit transmitting values that conflict.</li>
+        <li>This format is self-documenting. Metadata are included along
+          with the data. Though there is a possibility that a developer
+          would change data columns without changing the header records,
+          this possibility is relatively slight. <br>
+        </li>
+      </ul>
+      <p>Disadvantages:<br>
+      </p>
+      <ul>
+        <li>Some input routines, tools, and packages can not handle this
+          format as is, necessitating pre-processing and/or error
+          handling to pull of and/or discard the header record.<br>
+        </li>
+      </ul>
+      Bloat:<br>
+      <ul>
+        <li>Effectively the same as flat-file records without headers;
+          all we do is add one header record; a tiny relative addition
+          in the case of large files.</li>
+      </ul>
+      <h3>Positionally formatted flat files, no header records<br>
+      </h3>
+      <p>Consider the following; a portion of a data feed that currently
+        exists (records truncated):<br>
+      </p>
+      <blockquote>
+        <p><tt>0000008F91D0401CAF5BC063F29310C02E40D89F|113|08X3|08O3|03O3|101|02H1|44|2|Y|000000001001000|M|O|01|S||||||||1<br>
+000002A365739E99657CD84AB646637A9E5B66C9|363|20S3|07C3|04C3|451|10L1|70|1|Y|001000000000000|M|R|03|M|1|1||||||1<br>
+          </tt></p>
+      </blockquote>
+      <blockquote> </blockquote>
+      Note how nicely the fields all line up. Examining the total sample
+      input data file, they don't all line up as perfectly as that, but
+      the sameness of format and occurrence of values is apparent. In
+      such a situation, the following data formatting option may be
+      used:<br>
+      <blockquote>
+        <p><tt>0000008F91D0401CAF5BC063F29310C02E40D89F11308X308O303O310102H1442Y000000001001000MO01S&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+
+
+
+
+            1&nbsp;&nbsp;&nbsp;&nbsp; <br>
+            000002A365739E99657CD84AB646637A9E5B66C936320S307C304C345110L1701Y001000000000000MR03M11&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+
+
+
+
+            1<br>
+          </tt></p>
+      </blockquote>
+      <blockquote> </blockquote>
+      Advantages:<br>
+      <ul>
+        <li>This is, or at least may be, the most efficient of all our
+          options. The overhead of using spaces when particular data
+          values are not present, is minimal.</li>
+        <li>Maximally easy to ingest using nearly any off-the
+          shelf/existing input routine.<br>
+        </li>
+      </ul>
+      <p>Disadvantages:<br>
+      </p>
+      <ul>
+        <li>This looks old-fashioned! Though seemingly silly, we must
+          not discount this factor. This scheme predates both computers
+          and electronics, going all the way back to the Hollerith card
+          and the 1890 (no that is not a typo) U.S. census. No one will
+          ever look at a presentation of this scheme and react "cool!"
+          Even if it happens to be the best option, all things
+          considered.<br>
+        </li>
+        <li>As with other headerless formats, the possibility does and
+          always will exist that column layouts could change, without
+          correspondingly changed metadata being transmitted
+          to/incorporated by the ingesting system.<tt><br>
+          </tt></li>
+      </ul>
+      <blockquote> </blockquote>
+      Bloat:<br>
+      <ul>
+        <li>Possibly, near-zero - close to "as small as bloat can get".
+          But see also hybrid schemes.</li>
+      </ul>
+      <h3>Hybrid: Positionally formatted flat files followed by
+        key-value pairs (no header records)<br>
+      </h3>
+      <p>Consider the following (extracted from actual sample data but
+        modified and edited, for length and to demonstrate the point):<br>
+      </p>
+      <blockquote>
+        <p><tt><small>00000AF26FC46AF0613133E783A99AC4F7E880BD|173|12B3|01C3|01C3|261|06M1|34|1|Y|000001000000000|M|O|01|S||1|1||1||||G|B|C|C|||G|||A||M|||||000000010000010000000|byr=1941|<br>
+              00000C3FBE1125E0273D8C06C5F1B52DE722F82B|05G|19MG|&nbsp;&nbsp;&nbsp;
+
+
+
+
+
+              |02OG|28G|03MG|&nbsp; | | |000000000000000| | |&nbsp; | ||
+              | || |||| | | | ||| ||| || |||||000000000000000000000||<br>
+              00000D35294BA9AC67E18F86174D08DD61E1639D|20G|07XG|12OG|03OG|18G|03MG|&nbsp;
+
+
+
+
+
+              | | |000000000000000| | |&nbsp; |S|| | || |||| | | | |||
+              ||| || |||||000000000000000000000||</small><br>
+          </tt></p>
+      </blockquote>
+      <blockquote> </blockquote>
+      Again, we may advantageously remove delimiters, going to a
+      positional scheme. But note toward the end of the top line, the
+      value 1941, not present in other records. If there are enough
+      instances of this sort of thing (variant attribute availability)
+      then a hybrid scheme might be optimal. First, on the left side
+      (before the vertical bar character), come all the positionally
+      formatted data. Then come the key-value pairs. Like so:<br>
+      <blockquote>
+        <p><tt>00000AF26FC46AF0613133E783A99AC4F7E880BD17312B301C301C326106M1341Y000001000000000MO01S111GBCCGAM000000010000010000000|byr=1941<br>
+            00000C3FBE1125E0273D8C06C5F1B52DE722F82B05G19MG&nbsp;&nbsp;&nbsp;
+
+
+
+
+
+            02OG28G03MG&nbsp;&nbsp;&nbsp;
+            000000000000000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+
+
+
+            000000000000000000000<br>
+            00000D35294BA9AC67E18F86174D08DD61E1639D20G07XG12OG03OG18G03MG&nbsp;&nbsp;&nbsp;
+
+
+
+
+
+            000000000000000&nbsp;&nbsp;&nbsp;
+            S&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            000000000000000000000<br>
+          </tt></p>
+      </blockquote>
+      <blockquote> </blockquote>
+      Advantages:<br>
+      <ul>
+        <li>If ProdBase records consist of a mix of attributes that are:</li>
+        <ul>
+          <li>"very commonly present" and</li>
+          <li>"sometimes present but with great variation,"</li>
+        </ul>
+        then this would be the most efficient of all our options. We use
+        the best of both worlds; skipping the overhead of both
+        delimiters and of keys when that is beneficial, but then, using
+        keys when (and only when) it is beneficial to do so.<br>
+      </ul>
+      <p>Disadvantages:<br>
+      </p>
+      <ul>
+        <li>Custom input/parsing required. No off-the-shelf tool I know
+          of supports this.</li>
+        <li>Metadata still required for the left hand data elements;
+          out-of-synch potential exists. As with other headerless
+          formats, the possibility/risk will always exist, that column
+          layouts could change, without correspondingly changed metadata
+          being transmitted to/incorporated by the ingesting system.</li>
+      </ul>
+      <p>Bloat:</p>
+      <ul>
+        <li>Possibly, near-zero - close to "as small as bloat can get".</li>
+      </ul>
+      <h3>Encoded single values<br>
+      </h3>
+      <p>Looking again at one of the (leading) options for formatting an
+        anonymized ProdBase extract (lines truncated here for display):<br>
+      </p>
+      <blockquote>
+        <p><tt>0000008F91D0401CAF5BC063F29310C02E40D89F|1270-11|1271-08X|1274-08O|1275-03O|1280-10|1281-02H|4151-44|4152-2<br>
+000002A365739E99657CD84AB646637A9E5B66C9|1270-36|1271-20S|1274-07C|1275-04C|1280-45|1281-10L|4151-70|4152-1<br>
+000002F7994DF919B73F4ACFB0AF659CD5C0A3E7|1270-20|1271-07X|1275-03O|1280-26|1281-06M|2507-00|2531-00<br>
+          </tt></p>
+      </blockquote>
+      There is another scheme, that is already used at Anonom and could
+      be used in this instance. That is:<br>
+      <ul>
+        <li>encode all this information as single values</li>
+        <li>each single value contains both a definitional and a data
+          element.</li>
+      </ul>
+      So, working from the above example:<br>
+      <ul>
+        <li><tt>aaaaa means 1270-11</tt></li>
+        <li><tt>aaaab means </tt><tt>1270-20</tt></li>
+        <li><tt>aaaac means </tt><tt>1270-36</tt></li>
+        <li><tt>aaaad means </tt><tt>1271-08X</tt></li>
+        <li><tt>aaaae means </tt><tt>1271-20S</tt></li>
+        <li>and so on<tt>.<br>
+          </tt></li>
+      </ul>
+      Obviously this is just a "toy" example and the real scheme would
+      use different mappings. But as long as the ProdBase information to
+      be stored and transmitted consists of a smallish set of enumerable
+      values (which would exclude storing information such as decimal
+      values), this scheme is possible.<br>
+      <br>
+      Advantages:
+      <ul>
+        <li>Variable-length records nicely supported.</li>
+        <li>Order of data within a record is not important.<br>
+        </li>
+        <li>New encodings may be added at any time</li>
+        <ul>
+          <li>No recoding of export or import processes needed</li>
+          <li>Downstream processes, though, may need recoding and/or
+            reconfiguration, to make use of the new data.<br>
+          </li>
+        </ul>
+      </ul>
+      <p>Disadvantages:<br>
+      </p>
+      <ul>
+        <li>This scheme does still inhere the risk of
+          non-synchronization of metatdata and data. If the definitional
+          scheme ever changes, but that is not communicated to the
+          ingesting system, incorrect processing and interpretation will
+          result.</li>
+        <li>Possibility of duplication</li>
+        <ul>
+          <li>There is nothing within the file structure itself that
+            prevents something like this (given the sample scheme shown
+            above, this is an internal contradiction):</li>
+        </ul>
+      </ul>
+      <blockquote>
+        <blockquote><tt>000002F7994DF919B73F4ACFB0AF659CD5C0A3E7|aaaab|aaaac|<br>
+          </tt></blockquote>
+      </blockquote>
+      Bloat:<br>
+      <ul>
+        <li>This sort of scheme will almost certainly not be efficient
+          as regards data storage, compared to some others described
+          here. In the example shown here, using&nbsp; 5 alphanumeric
+          characters (which seems a plausible length), it therefore
+          takes 5 characters to express what is expressed in just one
+          character in some of the other schemes. Which works out to 80%
+          bloat. A better analysis, using sample data, I have not
+          carried out.<br>
+        </li>
+      </ul>
+      <br>
+    </div>
+  </body>
+</html>
