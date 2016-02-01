@@ -1,0 +1,26 @@
+making bad choices
+ - postgresql tables instead of sequences
+ - start at -2147483647 instead of 0 or 1
+ - latest new thing
+ - design by resume and/or I want to try this new technique
+ - love of intricacy; equals the love of craft
+ 
+ 
+
+Motivations for a particular coding style; for coding a small block
+of code in a certain way:
+
+cute
+gadfly/tormentor - put a stick in your eye for the sake of it
+cosmetic
+dogmatic 
+rebel - "it's not odd enough"
+to prove myself different/distinguish myself
+desire for control
+allegiance to a vendor or other entity
+the "tie-in" (to another product?  same as above)
+learned a cool technique (in college, on an algorithm web site, from a workshop)
+
+
+
+
